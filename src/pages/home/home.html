@@ -1,0 +1,46 @@
+<ion-header>
+  <ion-navbar>
+    <ion-title>P641</ion-title>
+  </ion-navbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-list>
+    <ion-item>
+      <ion-avatar item-left center>
+        <ion-icon style="font-size: 30px" name="train"></ion-icon>
+        <ion-icon style="font-size: 30px" name="arrow-back"></ion-icon>
+      </ion-avatar>
+      <h2>{{fromStation}}</h2>
+      <button ion-button clear item-right (click)="doRadio('from')">Edit</button>
+    </ion-item>
+    <ion-item>
+      <ion-avatar item-left>
+        <ion-icon style="font-size: 30px" name="train"></ion-icon>
+        <ion-icon style="font-size: 30px" name="arrow-forward"></ion-icon>
+      </ion-avatar>
+      <h2>{{toStation}}</h2>
+      <button ion-button clear item-right (click)="doRadio('to')">Edit</button>
+    </ion-item>
+  </ion-list>
+
+  <ion-grid>
+    <ion-row>
+      <ion-col text-center>Departing</ion-col>
+      <ion-col text-center>Arriving</ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col text-center>{{departureTimeSchedule}}</ion-col>
+      <ion-col text-center></ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col text-center>In {{departureIn}} minutes</ion-col>
+      <ion-col text-center>10:23 AM</ion-col>
+    </ion-row>
+  </ion-grid>
+
+
+         <div #map id="map" data-tap-disabled="true"></div>
+
+</ion-content>

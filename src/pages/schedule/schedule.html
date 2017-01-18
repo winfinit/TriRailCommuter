@@ -1,0 +1,58 @@
+<ion-header>
+  <ion-navbar>
+    <ion-title>
+      Schedule
+    </ion-title>
+  </ion-navbar>
+
+
+</ion-header>
+
+
+<ion-content>
+
+  <ion-list>
+    <ion-item>
+      <ion-avatar item-left center>
+        <ion-icon style="font-size: 30px" name="clock"></ion-icon>
+      </ion-avatar>
+      <h2>{{scheduleDay}}</h2>
+      <button ion-button clear item-right (click)="doScheduleRadio()">Edit</button>
+    </ion-item>
+    <ion-item>
+      <ion-avatar item-left center>
+        <ion-icon style="font-size: 30px" name="train"></ion-icon>
+        <ion-icon style="font-size: 30px" name="arrow-back"></ion-icon>
+      </ion-avatar>
+      <h2>{{fromStation}}</h2>
+      <button ion-button clear item-right (click)="doRadio('from')">Edit</button>
+    </ion-item>
+    <ion-item>
+      <ion-avatar item-left>
+        <ion-icon style="font-size: 30px" name="train"></ion-icon>
+        <ion-icon style="font-size: 30px" name="arrow-forward"></ion-icon>
+      </ion-avatar>
+      <h2>{{toStation}}</h2>
+      <button ion-button clear item-right (click)="doRadio('to')">Edit</button>
+    </ion-item>
+  </ion-list>
+
+<button ion-button full (click)="swapStations()">{{fromStation}}&nbsp;<ion-icon name="swap"></ion-icon>&nbsp;{{toStation}}</button>
+
+<ion-card *ngFor="let row of schedule">
+  <ion-card-content>
+    <ion-row>
+      <ion-col width-33>{{row.train}}</ion-col>
+      <ion-col width-33>{{row.departure}}</ion-col>
+      <ion-col width-33>{{row.arrival}}</ion-col>
+	</ion-row>
+  </ion-card-content>
+</ion-card>
+
+<div *ngIf="schedule && !schedule.length">
+schedule is currently not available
+<button ion-button block (click)="loadSchedule()">Retry</button>
+</div>
+
+
+</ion-content>

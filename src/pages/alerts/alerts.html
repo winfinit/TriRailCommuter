@@ -1,0 +1,24 @@
+<ion-header>
+  <ion-navbar>
+    <ion-title>
+      Alerts
+    </ion-title>
+  </ion-navbar>
+</ion-header>
+
+<ion-content padding>
+
+<ion-card *ngFor="let row of alerts" >
+  <ion-card-header>
+    {{row.time}}
+  </ion-card-header>
+  <ion-card-content>
+    {{row.message}}
+  </ion-card-content>
+</ion-card>
+
+<div *ngIf="alerts && !alerts.length">
+No alerts to display
+</div>
+
+</ion-content>

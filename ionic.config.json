@@ -1,0 +1,16 @@
+{
+  "name": "TriRailCommuter",
+  "app_id": "1d96dfa8",
+  "v2": true,
+  "typescript": true,
+  "proxies": [
+    {
+        "path": "/train-schedules",
+        "proxyUrl": "http://www.tri-rail.com"
+    },
+    {
+        "path": "/vip.mobile",
+        "proxyUrl": "http://www.tri-rail.com"
+    }
+]
+}
