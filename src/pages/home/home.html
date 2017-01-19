@@ -12,7 +12,7 @@
         <ion-icon style="font-size: 30px" name="train"></ion-icon>
         <ion-icon style="font-size: 30px" name="arrow-back"></ion-icon>
       </ion-avatar>
-      <h2>{{fromStation}}</h2>
+      <h2>{{fromStation.name}}</h2>
       <button ion-button clear item-right (click)="doRadio('from')">Edit</button>
     </ion-item>
     <ion-item>
@@ -20,7 +20,7 @@
         <ion-icon style="font-size: 30px" name="train"></ion-icon>
         <ion-icon style="font-size: 30px" name="arrow-forward"></ion-icon>
       </ion-avatar>
-      <h2>{{toStation}}</h2>
+      <h2>{{toStation.name}}</h2>
       <button ion-button clear item-right (click)="doRadio('to')">Edit</button>
     </ion-item>
   </ion-list>

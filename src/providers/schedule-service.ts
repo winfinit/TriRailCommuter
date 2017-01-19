@@ -45,8 +45,8 @@ interface ScheduleRequestObj {
   		//url = "/train-schedules/TrainSchedule.aspx";
   		//console.log(scheduleObj);
       console.log("schedule obj", scheduleObj);
-  		let ddlDep: string = String(this.stationsModel.stationsIndex[scheduleObj.fromStation] + 1);
-  		let ddlArr: string = String(this.stationsModel.stationsIndex[scheduleObj.toStation] + 1);
+  		let ddlDep: string = scheduleObj.fromStation;
+  		let ddlArr: string = scheduleObj.toStation;
   		let ddlDot: string;
   		if ( scheduleObj.scheduleDay === 'Weekday' ) {
   			ddlDot = "1";

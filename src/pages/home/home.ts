@@ -16,9 +16,27 @@ declare var google;
 
 export class HomePage {
 	testRadioOpen: boolean;
-	fromStation: string;
-	toStation: string;
-	stations: StationsModel = new StationsModel();
+	fromStation: {extID: string, id: number, triId: number, lat: number, lng: number, name: string, rid: number, shortName: string} = {
+		extID: "",
+		id: 0,
+		lat: 0,
+		lng: 0,
+		name: "",
+		rid: 0, 
+		triId: 0,
+		shortName: ""
+	};
+	toStation: {extID: string, id: number, triId: number, lat: number, lng: number, name: string, rid: number, shortName: string} = {
+		extID: "",
+		id: 0,
+		lat: 0,
+		lng: 0,
+		name: "",
+		rid: 0, 
+		triId: 0,
+		shortName: ""
+	};	
+	stations: Array<any>;
 	private storage: Storage;
 	toStationLatLng: any;
 	fromStationLatLng: any;
@@ -43,22 +61,26 @@ export class HomePage {
 		Observable.forkJoin(
 			this.storage.get('fromStation'),
 			this.storage.get('toStation'),
+			this.etaspotService.getStations()
 			).subscribe(
 			data => {
 				let fromStation = data[0];
 				let toStation = data[1];
+				this.stations = data[2];
 
 				if (fromStation) {
-					this.fromStation = fromStation;
+					this.fromStation = this.stations[fromStation];
 				} else {
-					this.fromStation = this.stations.stationsList[0];
+					this.fromStation = this.stations[0];
 				}
 				if ( toStation ) {
-					this.toStation = toStation;
+					this.toStation = this.stations[toStation];
 				} else {
-					this.toStation = this.stations.stationsList[17];
+					this.toStation = this.stations[17];
 				}
 
+				console.log(this.stations);
+				console.log('this.to and from', this.toStation, this.fromStation);
 
 				this.initStationMetadata();
 				this.loadMap();
@@ -71,18 +93,11 @@ export class HomePage {
 		}
 
 		initStationMetadata() {
-			// reverse stations based on closest station
-			this.toStationIndex = this.stations.stationsIndex[this.toStation];
-			this.fromStationIndex = this.stations.stationsIndex[this.fromStation];
+			console.log(this.toStation, this.toStation.lat);
+			this.toStationLatLng = new google.maps.LatLng(this.toStation.lat, this.toStation.lng);
+			this.fromStationLatLng = new google.maps.LatLng(this.fromStation.lat, this.fromStation.lng);
 
-			let toStationCoordinates: {lat: number, lng: number } = this.stations.stationsCoordinates[this.toStationIndex];
-			let fromStationCoordinates: {lat: number, lng: number } = this.stations.stationsCoordinates[this.fromStationIndex];
-			// this.stations.stationsCoordinates[0]
-
-			this.toStationLatLng = new google.maps.LatLng(toStationCoordinates.lat, toStationCoordinates.lng);
-			this.fromStationLatLng = new google.maps.LatLng(fromStationCoordinates.lat, fromStationCoordinates.lng);
-
-			if ( this.toStationIndex > this.fromStationIndex ) {
+			if ( this.toStation.id > this.fromStation.id ) {
 				this.direction = "NorthBound";
 			} else {
 				this.direction = "SouthBound";
@@ -97,9 +112,13 @@ export class HomePage {
 			// 	console.log('toStation schedule', res);
 			// });
 			console.log('direction is', this.direction);
-			this.etaspotService.getStopEtas(this.fromStationIndex, this.direction).subscribe(res => {
+			this.etaspotService.getStopEtas(this.fromStation.id, this.direction).subscribe(res => {
 				console.log('fromStationIndex schedule', res);
 
+				if ( res.length < 1 ) {
+					// no more trains
+					return;
+				}
 				// set departure time
 				let closestTrain = res[0];
 
@@ -119,13 +138,11 @@ export class HomePage {
 		doRadio(direction) { /* direction is "to" or "from" */
 
 		var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [];
-		this.stations.stationsList.forEach(stationName => {
-			console.log(stationName);
-			console.log(alertInputs);
+		this.stations.forEach(station => {
 			alertInputs.push({
 				type: 'radio',
-				label: stationName,
-				value: stationName
+				label: station.name,
+				value: (parseInt(station.id) - 1).toString()
 			});
 		});
 
@@ -133,9 +150,9 @@ export class HomePage {
 		//alertInputs[0].checked = true;
 		let checkedStationIndex: number;
 		if (direction === "to" ) {
-			checkedStationIndex = this.stations.stationsIndex[this.toStation];
+			checkedStationIndex = this.toStation.id - 1;
 		} else {
-			checkedStationIndex = this.stations.stationsIndex[this.fromStation];
+			checkedStationIndex = this.fromStation.id - 1;
 		}
 
 		console.log('checked index station', checkedStationIndex);
@@ -159,10 +176,10 @@ export class HomePage {
 					this.testRadioOpen = false;
 
 					if (direction === "to") {
-						this.toStation = data;
+						this.toStation = this.stations[data];
 						this.storage.set('toStation', data);
 					} else {
-						this.fromStation = data;
+						this.fromStation = this.stations[data];
 						this.storage.set('fromStation', data);
 					}
 				}
@@ -201,12 +218,12 @@ export class HomePage {
 		this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
 
 		// add stations markers
-		this.stations.stationsCoordinates.forEach((latLon, index) => {
+		this.stations.forEach((station, index) => {
 			//console.log("test", latLon, this.stations.stationsList[index]);
 			new google.maps.Marker({
-				position: latLon,
+				position: {lat: station.lat, lng: station.lng},
 				map: this.map,
-				title: this.stations.stationsList[index],
+				title: station.name,
 				icon: 'assets/icon/tri-marker.png'
 			});
 		});
@@ -227,8 +244,8 @@ export class HomePage {
 
 		// Set destination, origin and travel mode.
 		var request = {
-			destination: this.stations.stationsCoordinates[0],
-			origin: this.stations.stationsCoordinates[17],
+			destination: {lat: this.stations[0].lat, lng: this.stations[0].lng},
+			origin: {lat: this.stations[17].lat, lng: this.stations[17].lng},
 			travelMode: 'TRANSIT'
 		};
 
@@ -298,7 +315,7 @@ export class HomePage {
 			if ( toStationDistance < fromStationDistance ) {
 				console.log('toStation is closer');
 				// flip to and from
-				let tempStation: string = this.fromStation;
+				let tempStation: any = this.fromStation;
 				this.fromStation = this.toStation;
 				this.toStation = tempStation;
 				this.initStationMetadata();

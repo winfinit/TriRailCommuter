@@ -94,20 +94,54 @@ import 'rxjs/add/operator/map';
   					data.get_vihicles[0].enRoute.forEach(train => {
   						console.log('train is', train);
   						// if ( train.direction === direction ) {
-  						// 	dataToReturn.push(train);
+  							// 	dataToReturn.push(train);
+  							// }
+  						});
+  					// } else {
+  						// 	dataToReturn = data.get_vihicles;
   						// }
-  					});
-  				// } else {
-  				// 	dataToReturn = data.get_vihicles;
-  				// }
 
+  					} else {
+  						console.error('response doesnt contain data.get_stop_etas');
+  					}
+
+  					//this.data = data;
+  					return dataToReturn;
+  				});
+  	}
+
+  	getStations() {
+
+  		let url: string;
+  		url = "http://trirailpublic.etaspot.net/service.php";
+
+  		let params: URLSearchParams = new URLSearchParams();
+  		params.set('token', "TESTING");
+  		params.set('service', "get_stops");
+
+  		return this.http.get(url, { search: params} )
+  		.catch(error => {
+  			console.log('error getting schedule from etaspot', error);
+  			return Observable.throw('unable to get stops');
+  		})
+  		.map(res => {
+  			let data = res.json();
+  			let dataToReturn: Array<any> = [];
+
+  			if ( data.get_stops ) {
+  				data.get_stops.forEach(stop => {
+  					stop.triId = 18 - stop.id; 
+  				});
+  				dataToReturn = data.get_stops;
   			} else {
-  				console.error('response doesnt contain data.get_stop_etas');
+  				console.error('response doesnt contain data.get_stops');
   			}
 
   			//this.data = data;
   			return dataToReturn;
   		});
   	}
+
+
 
   }

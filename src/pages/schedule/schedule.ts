@@ -3,26 +3,47 @@ import { Storage } from '@ionic/storage';
 import { StationsModel } from '../../models/stations';
 import { NavController, AlertController, LoadingController } from 'ionic-angular';
 import { ScheduleService } from '../../providers/schedule-service';
+import { EtaspotService } from '../../providers/etaspot-service';
 import { Observable } from 'rxjs/Rx';
 
 @Component({
 	selector: 'page-schedule',
 	templateUrl: 'schedule.html',
-	providers: [ScheduleService]
+	providers: [ScheduleService, EtaspotService]
 })
 export class SchedulePage {
 	public schedule: any = [];
-	fromStation: string;
-	toStation: string;
+	fromStation: {extID: string, id: number, triId: number, lat: number, lng: number, name: string, rid: number, shortName: string} = {
+		extID: "",
+		id: 0,
+		lat: 0,
+		lng: 0,
+		name: "",
+		rid: 0, 
+		triId: 0,
+		shortName: ""
+	};
+	toStation: {extID: string, id: number, triId: number, lat: number, lng: number, name: string, rid: number, shortName: string} = {
+		extID: "",
+		id: 0,
+		lat: 0,
+		lng: 0,
+		name: "",
+		rid: 0, 
+		triId: 0,
+		shortName: ""
+	};	
 	scheduleDay: string;
 	testRadioOpen: boolean;
-	stations: StationsModel = new StationsModel();
+	stations: any;
+
 	private storage: Storage;
 
 	constructor(
 		public navCtrl: NavController, 
 		public alerCtrl: AlertController, 
 		public scheduleService: ScheduleService,
+		public etaspotService: EtaspotService,
 		public loadingCtrl: LoadingController) {
 		this.storage = new Storage();
 
@@ -31,22 +52,24 @@ export class SchedulePage {
 		Observable.forkJoin(
 			this.storage.get('fromStation'),
 			this.storage.get('toStation'),
+			this.etaspotService.getStations()
 			).subscribe(
 			data => {
 				let fromStation = data[0];
 				let toStation = data[1];
+				this.stations = data[2];
 
 				console.log("data from forkJoin", data);
 
 				if ( toStation ) {
-					this.toStation = toStation;
+					this.toStation = this.stations[toStation];
 				} else {
-					this.toStation = this.stations.stationsList[17];
+					this.toStation = this.stations[17];
 				}
 				if (fromStation) {
-					this.fromStation = fromStation;
+					this.fromStation = this.stations[fromStation];
 				} else {
-					this.fromStation = this.stations.stationsList[0];
+					this.fromStation = this.stations[0];
 				}			
 				if(!((new Date).getDay() % 6)) {
 					this.scheduleDay = "Weekend";
@@ -70,8 +93,8 @@ export class SchedulePage {
 			loading.present();
 			this.scheduleService.load({
 				scheduleDay: this.scheduleDay,
-				fromStation: this.fromStation,
-				toStation: this.toStation
+				fromStation: String(this.fromStation.triId),
+				toStation: String(this.toStation.triId)
 			})
 			.subscribe(
 				data => {
@@ -83,11 +106,11 @@ export class SchedulePage {
 					loading.dismiss();
 					console.log('unable to get schedule', err);
 				}
-			);
+				);
 		}
 
 		swapStations() {
-			let tempStation: string = this.fromStation;
+			let tempStation: any = this.fromStation;
 			this.fromStation = this.toStation;
 			this.toStation = tempStation;
 			this.loadSchedule();
@@ -96,13 +119,12 @@ export class SchedulePage {
 		doRadio(direction) { /* direction is "to" or "from" */
 
 		var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [];
-		this.stations.stationsList.forEach(stationName => {
-			console.log(stationName);
-			console.log(alertInputs);
+		this.stations.forEach(station => {
+			console.log('station', station);
 			alertInputs.push({
 				type: 'radio',
-				label: stationName,
-				value: stationName
+				label: station.name,
+				value: (parseInt(station.triId) - 1).toString()
 			});
 		});
 
@@ -110,9 +132,9 @@ export class SchedulePage {
 		//alertInputs[0].checked = true;
 		let checkedStationIndex: number;
 		if (direction === "to" ) {
-			checkedStationIndex = this.stations.stationsIndex[this.toStation];
+			checkedStationIndex = this.toStation.triId - 1;
 		} else {
-			checkedStationIndex = this.stations.stationsIndex[this.fromStation];
+			checkedStationIndex = this.fromStation.triId - 1;
 		}
 
 		console.log('checked index station', checkedStationIndex);
