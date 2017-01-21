@@ -120,11 +120,12 @@ export class SchedulePage {
 
 		var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [];
 		this.stations.forEach(station => {
+
 			console.log('station', station);
 			alertInputs.push({
 				type: 'radio',
 				label: station.name,
-				value: (parseInt(station.triId) - 1).toString()
+				value: station.id
 			});
 		});
 
@@ -132,9 +133,9 @@ export class SchedulePage {
 		//alertInputs[0].checked = true;
 		let checkedStationIndex: number;
 		if (direction === "to" ) {
-			checkedStationIndex = this.toStation.triId - 1;
+			checkedStationIndex = this.toStation.id - 1;
 		} else {
-			checkedStationIndex = this.fromStation.triId - 1;
+			checkedStationIndex = this.fromStation.id - 1;
 		}
 
 		console.log('checked index station', checkedStationIndex);
@@ -153,14 +154,16 @@ export class SchedulePage {
 			},
 			{
 				text: 'Ok',
-				handler: data => {
-					console.log('Radio data:', data, direction);
+				handler: stationId => {
+					console.log('Radio data:', stationId, direction);
 					this.testRadioOpen = false;
 
+					// because array index starts with 0
+					stationId = stationId - 1;
 					if (direction === "to") {
-						this.toStation = data;
+						this.toStation = this.stations[stationId];
 					} else {
-						this.fromStation = data;
+						this.fromStation = this.stations[stationId];
 					}
 					this.loadSchedule();
 				}
@@ -177,7 +180,6 @@ export class SchedulePage {
 
 	doScheduleRadio() { /* direction is "to" or "from" */
 
-	// enableBackdropDismiss to not allow dismiss without cancel
 	var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [
 	{
 		type: 'radio',

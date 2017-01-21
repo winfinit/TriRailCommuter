@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Http, URLSearchParams, RequestOptions, Headers, QueryEncoder } from '@angular/http';
 import 'rxjs/add/operator/map';
-import { StationsModel } from '../models/stations';
 import { Observable }     from 'rxjs/Observable';
 
 class MyQueryEncoder extends QueryEncoder {
@@ -29,8 +28,6 @@ interface ScheduleRequestObj {
   	*/
   @Injectable()
   export class ScheduleService {
-
-  	stationsModel: StationsModel = new StationsModel();
 
   	constructor(public http: Http) {
   		console.log('Hello ScheduleService Provider');

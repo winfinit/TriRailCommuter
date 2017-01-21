@@ -130,7 +130,7 @@ import 'rxjs/add/operator/map';
 
   			if ( data.get_stops ) {
   				data.get_stops.forEach(stop => {
-  					stop.triId = 18 - stop.id; 
+  					stop.triId = 19 - stop.id; 
   				});
   				dataToReturn = data.get_stops;
   			} else {
