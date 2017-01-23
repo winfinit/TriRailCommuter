@@ -65,9 +65,8 @@ import 'rxjs/add/operator/map';
   		});
   	}
 
-  	getVihicles(stopId: number) {
+  	getVehicles() {
 
-  		let alerts: Array<{time: string, message: string}> = [];
   		let url: string;
   		url = "http://trirailpublic.etaspot.net/service.php";
 
@@ -75,12 +74,12 @@ import 'rxjs/add/operator/map';
   		params.set('includeETAData', "1");
   		params.set('orderedETAArray', "1");
   		params.set('token', "TESTING");
-  		params.set('service', "get_vihicles");
+  		params.set('service', "get_vehicles");
 
   		return this.http.get(url, { search: params} )
   		.catch(error => {
-  			console.log('error getting schedule from etaspot', error);
-  			return Observable.throw('unable to get schedule');
+  			console.log('error getting vehicles from etaspot', error);
+  			return Observable.throw('unable to get vehicles');
   		})
   		.map(res => {
   			//console.log('res from etastpo', res);
@@ -88,26 +87,22 @@ import 'rxjs/add/operator/map';
 
   			let dataToReturn: Array<any> = [];
 
-  			if ( data.get_vihicles ) {
-  				// if ( direction ) {
-  					console.log('data.get_vihicles', data.get_vihicles);
-  					data.get_vihicles[0].enRoute.forEach(train => {
-  						console.log('train is', train);
-  						// if ( train.direction === direction ) {
-  							// 	dataToReturn.push(train);
-  							// }
-  						});
-  					// } else {
-  						// 	dataToReturn = data.get_vihicles;
-  						// }
+  			if ( data.get_vehicles ) {
+          console.log('data.get_vehicles', data.get_vehicles);
+          dataToReturn = data.get_vehicles[0].enRoute;
 
-  					} else {
-  						console.error('response doesnt contain data.get_stop_etas');
-  					}
+          data.get_vehicles[0].enRoute.forEach(train => {
+            console.log('train is', train);
+          });
 
-  					//this.data = data;
-  					return dataToReturn;
-  				});
+
+        } else {
+          console.error('response doesnt contain data.get_vihicles');
+        }
+
+        //this.data = data;
+        return dataToReturn;
+      });
   	}
 
   	getStations() {

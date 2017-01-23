@@ -47,6 +47,9 @@ export class HomePage {
 	departureIn: string;
 	arrivalTimeSchedule: string;
 	arrivalIn: string;
+	nextTrain: any = {
+		scheduleNumber: ""
+	};
 
 	@ViewChild('map') mapElement: ElementRef;
 	map: any;
@@ -109,229 +112,240 @@ export class HomePage {
 		updateSchedule() {
 
 			// this.etaspotService.load(this.toStationIndex).subscribe(res => {
-			// 	console.log('toStation schedule', res);
-			// });
-			console.log('direction is', this.direction);
-			this.etaspotService.getStopEtas(this.fromStation.id, this.direction).subscribe(res => {
-				console.log('fromStationIndex schedule', res);
+				// 	console.log('toStation schedule', res);
+				// });
+				console.log('direction is', this.direction);
 
-				if ( res.length < 1 ) {
-					// no more trains
-					return;
-				}
-				// set departure time
-				let closestTrain = res[0];
+				Observable.forkJoin(
+					this.etaspotService.getStopEtas(this.fromStation.id, this.direction),
+					this.etaspotService.getVehicles()				
+					).subscribe(
+					data => {
+						let stopEtas = data[0];
+						let vehicles = data[1];
 
-				if ( closestTrain.status === 'On Time' ) {
-					this.departureTimeSchedule = closestTrain.schedule;
-				} else {
-					this.departureTimeSchedule = closestTrain.status;
-				}
+						if ( stopEtas.length < 1 ) {
+							// no more trains
+							return;
+						}
+						// set departure time
+						let nextTrain = stopEtas[0];
+						this.nextTrain = nextTrain;
 
-				this.departureIn = closestTrain.minutes;
+						if ( nextTrain.status === 'On Time' ) {
+							this.departureTimeSchedule = nextTrain.schedule;
+						} else {
+							this.departureTimeSchedule = nextTrain.status;
+						}
 
-				// find arrival time
-			});
+						this.departureIn = nextTrain.minutes;
 
-		}
-
-		doRadio(direction) { /* direction is "to" or "from" */
-
-		var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [];
-		this.stations.forEach(station => {
-			alertInputs.push({
-				type: 'radio',
-				label: station.name,
-				value: (parseInt(station.id) - 1).toString()
-			});
-		});
-
-		// check previously selected station
-		//alertInputs[0].checked = true;
-		let checkedStationIndex: number;
-		if (direction === "to" ) {
-			checkedStationIndex = this.toStation.id - 1;
-		} else {
-			checkedStationIndex = this.fromStation.id - 1;
-		}
-
-		console.log('checked index station', checkedStationIndex);
-
-		alertInputs[checkedStationIndex].checked = true;
-
-		let alert = this.alerCtrl.create({
-			title: "Select station",
-			buttons: [
-			{
-				text: "Cancel",
-				role: 'cancel',
-				handler: data => {
-					console.log('cancel clicked');
-				}
-			},
-			{
-				text: 'Ok',
-				handler: data => {
-					console.log('Radio data:', data, direction);
-					this.testRadioOpen = false;
-
-					if (direction === "to") {
-						this.toStation = this.stations[data];
-						this.storage.set('toStation', data);
-					} else {
-						this.fromStation = this.stations[data];
-						this.storage.set('fromStation', data);
+						console.log('vehicles:', vehicles);
+					},
+					err => {
+						console.error('unable to get stopEtas or getVihicles');
 					}
+					);
+
 				}
-			}
-			],
-			inputs: alertInputs
-		});
 
-		alert.present().then(() => {
-			this.testRadioOpen = true;
-		});
-	}
+				doRadio(direction) { /* direction is "to" or "from" */
 
-	// Load map only after view is initialize
-	ionViewDidLoad(){
-		//this.loadMap();
-	}
-
-	loadMap(){
-
-		let loading = this.loadingCtrl.create({
-			content: 'Please wait...'
-		});
-		loading.present();
-		console.log('loadMap called');
-		//26.4560804,-80.1272338
-		//let latLng = new google.maps.LatLng(26.4542553,-80.0931816);
-
-		let mapOptions = {
-			center: this.fromStationLatLng,
-			zoom: 12,
-			mapTypeId: google.maps.MapTypeId.ROADMAP,
-			disableDefaultUI: true
-		}
-
-		this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
-
-		// add stations markers
-		this.stations.forEach((station, index) => {
-			//console.log("test", latLon, this.stations.stationsList[index]);
-			new google.maps.Marker({
-				position: {lat: station.lat, lng: station.lng},
-				map: this.map,
-				title: station.name,
-				icon: 'assets/icon/tri-marker.png'
-			});
-		});
-
-		var directionsDisplay = new google.maps.DirectionsRenderer({
-			map: this.map,
-			suppressMarkers: true,
-			preserveViewport: true,
-			polylineOptions: {
-				strokeColor: "#68cc67",
-				strokeWeight: 13,
-				strokeOpacity: 0.7
-			}
-		});
-
-		// Pass the directions request to the directions service.
-		var directionsService = new google.maps.DirectionsService();
-
-		// Set destination, origin and travel mode.
-		var request = {
-			destination: {lat: this.stations[0].lat, lng: this.stations[0].lng},
-			origin: {lat: this.stations[17].lat, lng: this.stations[17].lng},
-			travelMode: 'TRANSIT'
-		};
-
-		directionsService.route(request, function(response, status) {
-			if (status == 'OK') {
-				// Display the route on the map.
-				directionsDisplay.setDirections(response);
-			}
-		});
-
-
-		let gpsOptions = {
-			frequency: 1000, 
-			enableHighAccuracy: true
-		}
-
-		let meMarker;
-
-		Geolocation.watchPosition(gpsOptions)
-		.catch(err => {
-			console.log('error getting watchPosition', err);
-			return Observable.throw('unable to get alerts');
-		})
-		.subscribe((position: Geoposition) => {
-			console.log('data from watch position', position);
-
-			if ( position.coords === undefined) {
-				console.log('position not available');
-				loading.dismiss();
-				return;
-			} 
-
-			if ( meMarker ) {
-				// update marker
-				meMarker.setPosition( new google.maps.LatLng( position.coords.latitude, position.coords.longitude ) );
-
-
-			} else {
-				console.log("get current position:", position);
-				// create new marker
-				meMarker = new google.maps.Marker({
-					position: {lat: position.coords.latitude, lng: position.coords.longitude},
-					map: this.map,
-					title: 'Me',
-					icon: 'assets/icon/person-marker.png'
+				var alertInputs: Array<{type: string, label: string, value: string, checked?: boolean}> = [];
+				this.stations.forEach(station => {
+					alertInputs.push({
+						type: 'radio',
+						label: station.name,
+						value: (parseInt(station.id) - 1).toString()
+					});
 				});
-				// remove loader
-				loading.dismiss();
+
+				// check previously selected station
+				//alertInputs[0].checked = true;
+				let checkedStationIndex: number;
+				if (direction === "to" ) {
+					checkedStationIndex = this.toStation.id - 1;
+				} else {
+					checkedStationIndex = this.fromStation.id - 1;
+				}
+
+				console.log('checked index station', checkedStationIndex);
+
+				alertInputs[checkedStationIndex].checked = true;
+
+				let alert = this.alerCtrl.create({
+					title: "Select station",
+					buttons: [
+					{
+						text: "Cancel",
+						role: 'cancel',
+						handler: data => {
+							console.log('cancel clicked');
+						}
+					},
+					{
+						text: 'Ok',
+						handler: data => {
+							console.log('Radio data:', data, direction);
+							this.testRadioOpen = false;
+
+							if (direction === "to") {
+								this.toStation = this.stations[data];
+								this.storage.set('toStation', data);
+							} else {
+								this.fromStation = this.stations[data];
+								this.storage.set('fromStation', data);
+							}
+						}
+					}
+					],
+					inputs: alertInputs
+				});
+
+				alert.present().then(() => {
+					this.testRadioOpen = true;
+				});
 			}
-			// center map to current position
-			this.map.setCenter(meMarker.getPosition());
 
-			let currentLocationLatLng: any = new google.maps.LatLng(
-				position.coords.latitude, 
-				position.coords.longitude);
-
-			let toStationDistance: number = google.maps.geometry.spherical.computeDistanceBetween(
-				this.toStationLatLng, 
-				currentLocationLatLng);
-
-			let fromStationDistance: number = google.maps.geometry.spherical.computeDistanceBetween(
-				this.fromStationLatLng,
-				currentLocationLatLng);
-
-			console.log('to station distance', toStationDistance);
-			console.log('from station distance', fromStationDistance);
-			if ( toStationDistance < fromStationDistance ) {
-				console.log('toStation is closer');
-				// flip to and from
-				let tempStation: any = this.fromStation;
-				this.fromStation = this.toStation;
-				this.toStation = tempStation;
-				this.initStationMetadata();
-			} else {
-				console.log('from station is closer, no need to flip anything');
-				// let tempStation: string = this.toStation;
-				// this.toStation = this.fromStation;
-				// this.fromStation = tempStation;
+			// Load map only after view is initialize
+			ionViewDidLoad(){
+				//this.loadMap();
 			}
-		},
-		(err: PositionError) => {
-			console.log('unable to get location', err);
-			// remove loader
-			loading.dismiss();
-		});
 
-	}
+			loadMap(){
 
-}
+				let loading = this.loadingCtrl.create({
+					content: 'Please wait...'
+				});
+				loading.present();
+				console.log('loadMap called');
+				//26.4560804,-80.1272338
+				//let latLng = new google.maps.LatLng(26.4542553,-80.0931816);
+
+				let mapOptions = {
+					center: this.fromStationLatLng,
+					zoom: 12,
+					mapTypeId: google.maps.MapTypeId.ROADMAP,
+					disableDefaultUI: true
+				}
+
+				this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
+
+				// add stations markers
+				this.stations.forEach((station, index) => {
+					//console.log("test", latLon, this.stations.stationsList[index]);
+					new google.maps.Marker({
+						position: {lat: station.lat, lng: station.lng},
+						map: this.map,
+						title: station.name,
+						icon: 'assets/icon/tri-marker.png'
+					});
+				});
+
+				var directionsDisplay = new google.maps.DirectionsRenderer({
+					map: this.map,
+					suppressMarkers: true,
+					preserveViewport: true,
+					polylineOptions: {
+						strokeColor: "#68cc67",
+						strokeWeight: 13,
+						strokeOpacity: 0.7
+					}
+				});
+
+				// Pass the directions request to the directions service.
+				var directionsService = new google.maps.DirectionsService();
+
+				// Set destination, origin and travel mode.
+				var request = {
+					destination: {lat: this.stations[0].lat, lng: this.stations[0].lng},
+					origin: {lat: this.stations[17].lat, lng: this.stations[17].lng},
+					travelMode: 'TRANSIT'
+				};
+
+				directionsService.route(request, function(response, status) {
+					if (status == 'OK') {
+						// Display the route on the map.
+						directionsDisplay.setDirections(response);
+					}
+				});
+
+
+				let gpsOptions = {
+					frequency: 1000, 
+					enableHighAccuracy: true
+				}
+
+				let meMarker;
+
+				Geolocation.watchPosition(gpsOptions)
+				.catch(err => {
+					console.log('error getting watchPosition', err);
+					return Observable.throw('unable to get alerts');
+				})
+				.subscribe((position: Geoposition) => {
+					console.log('data from watch position', position);
+
+					if ( position.coords === undefined) {
+						console.log('position not available');
+						loading.dismiss();
+						return;
+					} 
+
+					if ( meMarker ) {
+						// update marker
+						meMarker.setPosition( new google.maps.LatLng( position.coords.latitude, position.coords.longitude ) );
+
+
+					} else {
+						console.log("get current position:", position);
+						// create new marker
+						meMarker = new google.maps.Marker({
+							position: {lat: position.coords.latitude, lng: position.coords.longitude},
+							map: this.map,
+							title: 'Me',
+							icon: 'assets/icon/person-marker.png'
+						});
+						// remove loader
+						loading.dismiss();
+					}
+					// center map to current position
+					this.map.setCenter(meMarker.getPosition());
+
+					let currentLocationLatLng: any = new google.maps.LatLng(
+						position.coords.latitude, 
+						position.coords.longitude);
+
+					let toStationDistance: number = google.maps.geometry.spherical.computeDistanceBetween(
+						this.toStationLatLng, 
+						currentLocationLatLng);
+
+					let fromStationDistance: number = google.maps.geometry.spherical.computeDistanceBetween(
+						this.fromStationLatLng,
+						currentLocationLatLng);
+
+					console.log('to station distance', toStationDistance);
+					console.log('from station distance', fromStationDistance);
+					if ( toStationDistance < fromStationDistance ) {
+						console.log('toStation is closer');
+						// flip to and from
+						let tempStation: any = this.fromStation;
+						this.fromStation = this.toStation;
+						this.toStation = tempStation;
+						this.initStationMetadata();
+					} else {
+						console.log('from station is closer, no need to flip anything');
+						// let tempStation: string = this.toStation;
+						// this.toStation = this.fromStation;
+						// this.fromStation = tempStation;
+					}
+				},
+				(err: PositionError) => {
+					console.log('unable to get location', err);
+					// remove loader
+					loading.dismiss();
+				});
+
+			}
+
+		}
